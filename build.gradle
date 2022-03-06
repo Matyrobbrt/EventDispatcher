@@ -33,7 +33,7 @@ dependencies {
 	implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
 	implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
 
-	compileOnly group: 'org.jetbrains', name: 'annotations', version: '16.0.3'
+	compileOnly group: 'org.jetbrains', name: 'annotations', version: '23.0.0'
 	
     testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.36'
     testImplementation group: 'io.github.cdimascio', name: 'dotenv-java', version: '2.2.3'
