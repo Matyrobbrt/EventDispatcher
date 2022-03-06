@@ -1,0 +1,128 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.30.0"
+    }
+}
+plugins {
+    id 'java-library'
+    id 'org.cadixdev.licenser' version '0.6.1'
+    id 'eclipse'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+group = "io.github.matyrobbrt"
+archivesBaseName = "curseforgeapi"
+version = "${version}"
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.9.0'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
+	
+	// ASM
+	def asmVersion = '9.1'
+	implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
+	implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+	implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+
+	compileOnly group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
+	
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.36'
+    testImplementation group: 'io.github.cdimascio', name: 'dotenv-java', version: '2.2.3'
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.22.0'
+    
+    def jupiterVersion = '5.8.2'
+    
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jupiterVersion
+}
+
+license {
+    header = file("$rootDir/licenseheader.txt")
+    properties {
+        name = 'Matyrobbrt'
+        year = 2022
+    }
+
+    include '**/*.java'
+}
+
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+// TODO fix names for publishing to maven
+allprojects {
+    compileJava {
+        options.release = 17
+    }
+    javadoc.options.addStringOption('Xdoclint:none', '-quiet')
+    
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
+    apply plugin: 'io.codearte.nexus-staging'
+    publishing {
+        publications{
+            mavenJava(MavenPublication) {
+                from components.java
+                pom {
+                    name = "curseforgeapi"
+                    description = "A Java wrapper for the CurseForge API"
+                    url = 'https://github.com/Matyrobbrt/CurseForgeJavaAPI'
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'http://www.opensource.org/licenses/mit-license.php'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'matyrobbrt'
+                            name = 'Matyrobbrt'
+                            email = 'matyrobbrt@gmail.com'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git:github.com/matyrobbrt/curseforgejavaapi.git'
+                        developerConnection = 'scm:git:ssh://github.com/Matyrobbrt/CurseForgeJavaAPI.git'
+                        url = 'https://github.com/Matyrobbrt/CurseForgeJavaAPI'
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "OSSRH"
+                url = project.hasProperty("snapshot") ?
+                        "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                        : "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                credentials {
+                    username = ossrhUser
+                    password = ossrhPassword
+                }
+            }
+        }
+    }
+    signing {
+        sign publishing.publications.mavenJava
+    }
+    nexusStaging {
+        serverUrl = "https://s01.oss.sonatype.org/service/local/"
+        username = ossrhUser
+        password = ossrhPassword
+    }
+    if (project.hasProperty("close")) {
+        tasks.publish.finalizedBy closeAndReleaseRepository
+    }
+}
+
+compileJava.options.encoding = "UTF-8"
