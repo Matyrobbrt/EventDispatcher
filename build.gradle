@@ -28,7 +28,7 @@ dependencies {
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
 	
 	// ASM
-	def asmVersion = '9.1'
+	def asmVersion = '9.2'
 	implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
 	implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
 	implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
