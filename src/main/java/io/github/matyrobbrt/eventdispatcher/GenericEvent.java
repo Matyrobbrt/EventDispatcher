@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
  * @author matyrobbrt
  *
  */
-public interface GenericEvent {
+public interface GenericEvent extends Event {
 
 	Type getGenericType();
 }

@@ -23,11 +23,21 @@ class ASMListenerGenerator {
 	private static final AtomicInteger GENERATED_CLASSES = new AtomicInteger();
 	private static final HashMap<Method, Class<?>> METHOD_CACHE = new HashMap<>();
 
-	private static final String LISTENER_DESC = Type.getInternalName(EventListener.class);
-	private static final String OBJECT_DESC = Type.getInternalName(Object.class);
+	private static final String LISTENER_CLASS_NAME = Type.getInternalName(EventListener.class);
+	private static final String OBJECT_DESC = Type.getDescriptor(Object.class);
+	private static final String OBJECT_NAME = Type.getInternalName(Object.class);
 	private static final String LISTENER_FUNC_DESC = Type.getMethodDescriptor(Type.VOID_TYPE,
 			Type.getType(Event.class));
 	private static final String HANDLE_EVENT_METHOD_NAME = EventListener.class.getDeclaredMethods()[0].getName();
+
+	/**
+	 * @see           #createMethodWrapper(Method, Consumer)
+	 * @param  method
+	 * @return
+	 */
+	static Class<?> createMethodWrapper(Method method) {
+		return createMethodWrapper(method, null);
+	}
 
 	/**
 	 * Generates a class for wrapping the event handler method.
@@ -42,20 +52,19 @@ class ASMListenerGenerator {
 			ClassWriter classWriter = new ClassWriter(0);
 			MethodVisitor methodVisitor;
 
-			boolean isStatic = Modifier.isStatic(method.getModifiers());
-			String name = getGeneratedName(method);
-			String desc = name.replace('.', '/');
-			String instType = Type.getInternalName(method.getDeclaringClass());
-			String eventType = Type.getInternalName(method.getParameterTypes()[0]);
+			final var isStatic = Modifier.isStatic(method.getModifiers());
+			final var name = getGeneratedName(method);
+			final var desc = name.replace('.', '/');
+			final var instType = Type.getInternalName(method.getDeclaringClass());
+			final var eventType = Type.getInternalName(method.getParameterTypes()[0]);
 
 			// Implement the listener interface on the class
-			classWriter.visit(V1_6, ACC_PUBLIC | ACC_SUPER, desc, null, OBJECT_DESC, new String[] {
-					LISTENER_DESC
+			classWriter.visit(V1_6, ACC_PUBLIC | ACC_SUPER, desc, null, OBJECT_NAME, new String[] {
+					LISTENER_CLASS_NAME
 			});
 			// Add the visual generated annotation
 			classWriter.visitAnnotation(ASMGeneratedEventListener.DESCRIPTOR, false).visitEnd();
 
-			classWriter.visitSource(".dynamic", null);
 			if (!isStatic) {
 				// Method is not static, so it needs to handle the events on an instance
 				classWriter.visitField(ACC_PRIVATE + ACC_FINAL, "ownerInstance", OBJECT_DESC, null, null).visitEnd();
@@ -66,7 +75,7 @@ class ASMListenerGenerator {
 						null);
 				methodVisitor.visitCode();
 				methodVisitor.visitVarInsn(ALOAD, 0);
-				methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+				methodVisitor.visitMethodInsn(INVOKESPECIAL, OBJECT_NAME, "<init>", "()V", false);
 				if (!isStatic) {
 					// Method is not static, so assign the instance field
 					methodVisitor.visitVarInsn(ALOAD, 0);
@@ -86,7 +95,7 @@ class ASMListenerGenerator {
 				methodVisitor.visitVarInsn(ALOAD, 0);
 				if (!isStatic) {
 					// Not static, so invoke the handle method on the instance
-					methodVisitor.visitFieldInsn(GETFIELD, desc, "ownerInstance", "Ljava/lang/Object;");
+					methodVisitor.visitFieldInsn(GETFIELD, desc, "ownerInstance", OBJECT_DESC);
 					methodVisitor.visitTypeInsn(CHECKCAST, instType);
 				}
 				methodVisitor.visitVarInsn(ALOAD, 1);
@@ -102,15 +111,22 @@ class ASMListenerGenerator {
 			if (byteDataHandler != null) {
 				byteDataHandler.accept(ba);
 			}
-			return ASMClassLoader.INSTANCE.define(name, ba);
+			return ASMClassLoader.INSTANCE.define(name, ba); // TODO different classloaders can't access package-private
+																// members
 		});
 	}
 
+	//@formatter:off
 	static String getGeneratedName(Method method) {
 		final var isStatic = Modifier.isStatic(method.getModifiers()) ? 1 : 0;
-		return "ASMGeneratedEventListener$%s$%s$%s$%s$%s".formatted(GENERATED_CLASSES.getAndIncrement(),
-				method.getDeclaringClass().getSimpleName(), method.getName(), isStatic,
+		final var pkgName = method.getDeclaringClass().getPackageName();
+		return "%sASMGeneratedEventListener$%s$%s$%s$%s$%s".formatted(
+				pkgName.isBlank() ? "" : pkgName + ".",
+				GENERATED_CLASSES.getAndIncrement(),
+				method.getDeclaringClass().getSimpleName(), 
+				isStatic,
+				method.getName(),
 				method.getParameterTypes()[0].getSimpleName());
-		// Example: ASMGeneratedEventListener$0$TestClass$listenerMethod$0$TestEvent
+		// Example: io.github.matyrobbrt.eventdispatcher.ASMGeneratedEventListener$0$TestClass$0$listenerMethod$TestEvent
 	}
 }
