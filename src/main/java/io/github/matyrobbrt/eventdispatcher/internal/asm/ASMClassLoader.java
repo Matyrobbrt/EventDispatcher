@@ -33,6 +33,7 @@ package io.github.matyrobbrt.eventdispatcher.internal.asm;
  * @author matyrobbrt
  *
  */
+@org.jetbrains.annotations.ApiStatus.Internal
 final class ASMClassLoader extends ClassLoader {
 
 	static final ASMClassLoader INSTANCE = new ASMClassLoader();

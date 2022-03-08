@@ -44,6 +44,7 @@ import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
  * @author matyrobbrt
  *
  */
+@org.jetbrains.annotations.ApiStatus.AvailableSince("1.0.0")
 public final class BusBuilder {
 
 	private final String name;

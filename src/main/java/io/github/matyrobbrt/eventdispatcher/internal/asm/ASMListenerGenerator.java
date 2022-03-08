@@ -45,6 +45,7 @@ import io.github.matyrobbrt.eventdispatcher.EventListener;
 import io.github.matyrobbrt.eventdispatcher.internal.asm.annotation.ASMGeneratedEventHandlerInvoker;
 import io.github.matyrobbrt.eventdispatcher.internal.asm.annotation.ASMGeneratedEventListener;
 
+@org.jetbrains.annotations.ApiStatus.Internal
 class ASMListenerGenerator {
 
 	private static final AtomicInteger GENERATED_CLASSES = new AtomicInteger();

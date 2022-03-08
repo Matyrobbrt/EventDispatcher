@@ -59,6 +59,7 @@ import net.jodah.typetools.TypeResolver;
  * @author matyrobbrt
  *
  */
+@org.jetbrains.annotations.ApiStatus.Internal
 @SuppressWarnings("unchecked")
 public final class EventBusImpl implements EventBus {
 
