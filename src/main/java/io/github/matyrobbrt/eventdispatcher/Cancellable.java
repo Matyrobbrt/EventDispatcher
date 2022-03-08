@@ -27,43 +27,28 @@
 
 package io.github.matyrobbrt.eventdispatcher;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 /**
- * Annotation to subscribe a method to an {@link Event}.
+ * A class that should be implemented by cancellable {@link Event}s. If the
+ * event is {@link #isCancelled() cancelled} while being handled by an
+ * {@link EventListener}, further listeners will no longer receive it
+ * {@link EventListener}.
+ * 
+ * @author matyrobbrt
  *
- * This annotation can only be applied to single parameter,
- * <strong>public</strong> methods, where the single parameter is a subclass of
- * {@link Event}.
- *
- * Use {@link EventBus#register(Object)} to submit an Object instance or a
- * {@link EventBus#register(Class)} to submit a class to the event bus for
- * scanning to generate callback {@link EventListener} wrappers.
- *
- * The {@link EventBus} system generates an ASM wrapper, using
- * {@link io.github.matyrobbrt.eventdispatcher.internal.asm.ASMEventListener},
- * that dispatches to the marked method. <br>
- * <br>
- * Currently, this annotation only works on public methods. Hopefully, this will
- * work for other access modifiers as well, in the future.
  */
-@Documented
-@Retention(RUNTIME)
-@Target(METHOD)
-public @interface SubscribeEvent {
+public interface Cancellable {
 
 	/**
-	 * The priority of this event listener. <br>
-	 * <strong>Higher priority == first to run.</strong> <br>
-	 * Defaults to 0 (neutral priority).
+	 * Checks if the event was cancelled.
 	 * 
-	 * @return the priority of the listener
+	 * @return if the event was cancelled.
 	 */
-	int priority() default 0;
+	boolean isCancelled();
 
+	/**
+	 * Cancel, or undoes the cancelling of the event.
+	 * 
+	 * @param cancelled if the event is cancelled
+	 */
+	void setCancelled(boolean cancelled);
 }

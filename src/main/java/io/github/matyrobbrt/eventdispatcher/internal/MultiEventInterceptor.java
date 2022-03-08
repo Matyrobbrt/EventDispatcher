@@ -27,21 +27,37 @@
 
 package io.github.matyrobbrt.eventdispatcher.internal;
 
-import java.util.function.Predicate;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.github.matyrobbrt.eventdispatcher.Event;
+import io.github.matyrobbrt.eventdispatcher.EventBus;
+import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 
-public record WithPredicateEventListener<E extends Event> (Class<? super E> eventType, Predicate<? super E> predicate,
-		EventListener handler)
-		implements EventListener {
+public final class MultiEventInterceptor implements EventInterceptor {
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void handle(Event event) {
-		if (eventType.isAssignableFrom(event.getClass()) && predicate.test((E) event)) {
-			handler.handle(event);
-		}
+	private final List<EventInterceptor> interceptors;
+
+	public MultiEventInterceptor(List<EventInterceptor> interceptors) {
+		this.interceptors = List.copyOf(interceptors);
 	}
 
+	@Override
+	public <E extends Event> @Nullable E onEvent(@NotNull EventBus bus, @NotNull E event) {
+		var newEvent = event;
+		for (var inter : interceptors) {
+			if (newEvent == null) { return null; }
+			newEvent = inter.onEvent(bus, newEvent);
+		}
+		return newEvent;
+	}
+
+	@Override
+	public void onException(@NotNull EventBus bus, @NotNull Event event, @NotNull Throwable throwable,
+			@NotNull EventListener listener) {
+		interceptors.forEach(i -> i.onException(bus, event, throwable, listener));
+	}
 }

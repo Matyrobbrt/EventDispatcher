@@ -1,0 +1,122 @@
+/*
+ * This file is part of the Event Dispatcher library and is licensed under
+ * the MIT license:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2022 Matyrobbrt
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package io.github.matyrobbrt.eventdispatcher.internal;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.github.matyrobbrt.eventdispatcher.Event;
+import io.github.matyrobbrt.eventdispatcher.EventBus;
+import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
+
+/**
+ * A Builder for creating {@link EventBus} instances.
+ * 
+ * @author matyrobbrt
+ *
+ */
+public final class BusBuilder {
+
+	private final String name;
+	private Class<? extends Event> baseEventType = Event.class;
+	private final List<EventInterceptor> interceptors = new ArrayList<>();
+	private Logger logger;
+
+	private BusBuilder(String name) {
+		this.name = name;
+	}
+
+	/**
+	 * Sets the base type of the events fired on the bus.
+	 * 
+	 * @param  baseEventType the base type of the events
+	 * @return               the builder instance
+	 */
+	public BusBuilder baseEventType(Class<? extends Event> baseEventType) {
+		this.baseEventType = baseEventType;
+		return this;
+	}
+
+	/**
+	 * Adds an {@link EventInterceptor} to the interceptors of the bus.
+	 * 
+	 * @param  interceptor the interceptor to add
+	 * @return             the builder instance
+	 */
+	public BusBuilder addInterceptor(EventInterceptor interceptor) {
+		this.interceptors.add(interceptor);
+		return this;
+	}
+
+	/**
+	 * Adds {@link EventInterceptor}s to the interceptors of the bus.
+	 * 
+	 * @param  interceptors the interceptors to add
+	 * @return              the builder instance
+	 */
+	public BusBuilder addInterceptors(EventInterceptor... interceptors) {
+		this.interceptors.addAll(Arrays.asList(interceptors));
+		return this;
+	}
+
+	/**
+	 * Sets the logger used for logging messages produced by the bus.
+	 * 
+	 * @param  logger the logger
+	 * @return        the builder instance
+	 */
+	public BusBuilder logger(Logger logger) {
+		this.logger = logger;
+		return this;
+	}
+
+	/**
+	 * Builds the {@link EventBus}.
+	 * 
+	 * @return the built {@link EventBus}
+	 */
+	public EventBus build() {
+		return new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
+				logger == null ? LoggerFactory.getLogger("EventBus %s".formatted(name)) : logger,
+				new MultiEventInterceptor(interceptors));
+	}
+
+	/**
+	 * Creates a builder instance.
+	 * 
+	 * @param  name the name of the bus
+	 * @return      the builder instance
+	 */
+	public static BusBuilder builder(String name) {
+		return new BusBuilder(name);
+	}
+}

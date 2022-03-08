@@ -1,3 +1,30 @@
+/*
+ * This file is part of the Event Dispatcher library and is licensed under
+ * the MIT license:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2022 Matyrobbrt
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package io.github.matyrobbrt.eventdispatcher.internal;
 
 import java.lang.reflect.InvocationTargetException;
@@ -12,33 +39,79 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventBus;
+import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 import io.github.matyrobbrt.eventdispatcher.GenericEvent;
 import io.github.matyrobbrt.eventdispatcher.SubscribeEvent;
 import io.github.matyrobbrt.eventdispatcher.internal.asm.ASMEventListener;
 import net.jodah.typetools.TypeResolver;
 
+/**
+ * An implementation of {@link EventBus}.
+ * 
+ * @author matyrobbrt
+ *
+ */
 @SuppressWarnings("unchecked")
 public final class EventBusImpl implements EventBus {
 
 	private final Map<Class<? extends Event>, EventDispatcher> dispatchers = Collections
 			.synchronizedMap(new HashMap<>());
+	private final String name;
 	private final Class<? extends Event> baseEventType;
 	private final Logger logger;
+	private final EventInterceptor interceptor;
+	private volatile boolean shutdown = false;
 
-	public EventBusImpl(Class<? extends Event> baseEventType, Logger logger) {
+	EventBusImpl(String name, Class<? extends Event> baseEventType, Logger logger, EventInterceptor interceptor) {
+		this.name = name;
 		this.baseEventType = baseEventType;
 		this.logger = logger;
+		this.interceptor = interceptor;
+	}
+
+	@Override
+	public String getName() {
+		return name;
+	}
+
+	@Override
+	public Class<? extends Event> getBaseEventType() {
+		return baseEventType;
+	}
+
+	@Override
+	public void shutdown() {
+		this.shutdown = true;
+		logger.warn("EventBus {} shutting down - future events will not be posted.", getName());
+	}
+
+	@Override
+	public void start() {
+		this.shutdown = false;
+	}
+
+	@Override
+	public boolean isShutdown() {
+		return shutdown;
 	}
 
 	@Override
 	public void post(Event event) {
-		getDispatcher(event.getClass()).handle(event);
+		final var eClass = event.getClass();
+		if (shutdown || !baseEventType.isAssignableFrom(eClass)) { return; }
+		final var newEvent = interceptor.onEvent(this, event);
+		if (newEvent != null) {
+			getDispatcher(eClass).handleWithExceptionCatch(newEvent,
+					(listener, t) -> interceptor.onException(this, event, t, listener));
+		}
 	}
 
 	@Override
@@ -53,8 +126,8 @@ public final class EventBusImpl implements EventBus {
 	}
 
 	@Override
-	public <E extends GenericEvent> void addGenericListener(int priority, Class<?> genericFilter,
-			Consumer<E> consumer) {
+	public <F, E extends GenericEvent<F>> void addGenericListener(int priority, @NotNull Class<F> genericFilter,
+			@NotNull Consumer<E> consumer) {
 		final var eClass = getEventClass(consumer);
 		if (baseEventType.isAssignableFrom(eClass)) {
 			throw new IllegalArgumentException(
@@ -77,25 +150,55 @@ public final class EventBusImpl implements EventBus {
 		registerClass(clazz);
 	}
 
+	@Override
+	public void unregister(Class<?> clazz) {
+		unregisterClass(clazz);
+	}
+
+	@Override
+	public void unregister(Object object) {
+		if (object instanceof Class<?> clazz) {
+			unregisterClass(clazz);
+		} else {
+			unregisterObject(object);
+		}
+	}
+
 	//@formatter:off
+	private Stream<Method> collectMethodsFromClass(Class<?> clazz, boolean warnIfWrongModifier) {
+		return Arrays.stream(clazz.getDeclaredMethods())
+                .filter(mthd -> Modifier.isStatic(mthd.getModifiers()) && methodCanBeListener(mthd, warnIfWrongModifier))
+                .filter(mthd -> mthd.isAnnotationPresent(SubscribeEvent.class));
+	}
+	private Stream<Method> collectMethodsFromObject(Object obj, boolean warnIfWrongModifier) {
+		final HashSet<Class<?>> parents = new HashSet<>();
+        collectParents(obj.getClass(), parents);
+        return Arrays.stream(obj.getClass().getDeclaredMethods())
+                .filter(m -> !Modifier.isStatic(m.getModifiers()) && methodCanBeListener(m, warnIfWrongModifier))
+                .flatMap(m -> parents.stream() // This search is for registering methods from subtypes
+                        .map(c -> getActualMethod(c, m))
+                        .filter(subM -> subM.isPresent() && subM.get().isAnnotationPresent(SubscribeEvent.class))
+                        .findFirst()
+                        .stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get));
+	}
+	
 	private void registerClass(final Class<?> clazz) {
-        Arrays.stream(clazz.getDeclaredMethods())
-                .filter(mthd -> Modifier.isStatic(mthd.getModifiers()) && methodCanBeListener(mthd))
-                .filter(mthd -> mthd.isAnnotationPresent(SubscribeEvent.class))
-                .forEach(mthd -> registerListener(mthd.getAnnotation(SubscribeEvent.class).priority(), clazz, mthd));
+        collectMethodsFromClass(clazz, true).forEach(mthd -> registerListener(mthd.getAnnotation(SubscribeEvent.class).priority(), clazz, mthd));
     }
 
 	private void registerObject(final Object obj) {
-        final HashSet<Class<?>> parents = new HashSet<>();
-        collectParents(obj.getClass(), parents);
-        Arrays.stream(obj.getClass().getDeclaredMethods())
-                .filter(m -> !Modifier.isStatic(m.getModifiers()) && methodCanBeListener(m))
-                .forEach(m -> parents.stream() // This search is for registering methods from subtypes
-                        .map(c -> getActualMethod(c, m))
-                        .filter(subM -> subM.isPresent() && subM.get().isAnnotationPresent(io.github.matyrobbrt.eventdispatcher.SubscribeEvent.class))
-                        .findFirst()
-                        .ifPresent(subM -> registerListener(m.getAnnotation(SubscribeEvent.class).priority(), obj, subM.get())));
+        collectMethodsFromObject(obj, true).forEach(m -> registerListener(m.getAnnotation(SubscribeEvent.class).priority(), obj, m));
     }
+	
+	private void unregisterClass(final Class<?> clazz) {
+		collectMethodsFromClass(clazz, false).forEach(mthd -> unregisterListener(clazz, mthd));
+	}
+	
+	private void unregisterObject(final Object obj) {
+		collectMethodsFromObject(obj, false).forEach(m -> unregisterListener(obj, m));
+	}
 	//@formatter:on
 
 	private void registerListener(final int priority, final Object target, final Method method) {
@@ -122,6 +225,27 @@ public final class EventBusImpl implements EventBus {
 		register(eventType, priority, target, method);
 	}
 
+	private void unregisterListener(final Object target, final Method method) {
+		Class<?>[] parameterTypes = method.getParameterTypes();
+		if (parameterTypes.length != 1)
+			return;
+		Class<?> eventType = parameterTypes[0];
+		if (!Event.class.isAssignableFrom(eventType) || !baseEventType.isAssignableFrom(eventType))
+			return;
+		getDispatcher((Class<? extends Event>) eventType).unregister(l -> {
+			ASMEventListener asm = null;
+			if (l instanceof ASMEventListener a) {
+				asm = a;
+			} else if (l instanceof WithPredicateEventListener<?> p) {
+				if (p.handler() instanceof ASMEventListener a) {
+					asm = a;
+				}
+			}
+			if (asm == null) { return false; }
+			return asm.isSame(method) && asm.isSame(target);
+		});
+	}
+
 	private void register(Class<?> eventType, int priority, Object target, Method method) {
 		try {
 			final ASMEventListener asm = new ASMEventListener(target, method,
@@ -134,11 +258,13 @@ public final class EventBusImpl implements EventBus {
 		}
 	}
 
-	private boolean methodCanBeListener(Method method) {
-		if (Modifier.isPrivate(method.getModifiers())) {
-			logger.warn(
-					"Method {} is not a valid candidate for event listeners! It is private, while the permitted modifiers are: public, protected and package-private. Skipping...",
-					method);
+	private boolean methodCanBeListener(Method method, boolean warn) {
+		if (!Modifier.isPublic(method.getModifiers())) {
+			if (warn) {
+				logger.warn(
+						"Method {} is not a valid candidate for event listeners! Only public methods are permitted. Skipping...",
+						method);
+			}
 			return false;
 		}
 		return true;
@@ -155,7 +281,7 @@ public final class EventBusImpl implements EventBus {
 	private static Optional<Method> getActualMethod(final Class<?> clz, final Method in) {
 		try {
 			return Optional.of(clz.getDeclaredMethod(in.getName(), in.getParameterTypes()));
-		} catch (NoSuchMethodException nse) {
+		} catch (NoSuchMethodException e) {
 			return Optional.empty();
 		}
 
@@ -175,7 +301,7 @@ public final class EventBusImpl implements EventBus {
 	}
 
 	private static void checkNotGeneric(final Class<? extends Event> eventType) {
-		if (io.github.matyrobbrt.eventdispatcher.GenericEvent.class.isAssignableFrom(eventType)) {
+		if (GenericEvent.class.isAssignableFrom(eventType)) {
 			throw new IllegalArgumentException(
 					"Cannot register a generic event listener with addListener, use addGenericListener");
 		}

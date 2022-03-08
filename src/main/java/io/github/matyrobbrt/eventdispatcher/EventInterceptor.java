@@ -27,20 +27,45 @@
 
 package io.github.matyrobbrt.eventdispatcher;
 
-import java.lang.reflect.Type;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * The base interface for generic events
+ * An interface used for intercepting events fired on an {@link EventBus}.
  * 
  * @author matyrobbrt
  *
  */
-public interface GenericEvent<T> extends Event {
+public interface EventInterceptor {
 
 	/**
-	 * Gets the generic type of this event.
+	 * Intercepts an event, before it is dispatched to listeners. <br>
+	 * Usually used for modifying events before they are dispatched, or for logging
+	 * their firing.
 	 * 
-	 * @return the generic type of the event
+	 * @param  <E>   the type of the intercepted event
+	 * @param  bus   the bus on which the event was fired
+	 * @param  event the intercepted event
+	 * @return       a (maybe) modified event, which will be dispatched to
+	 *               listeners. Usually, this is the {@code event} received as a
+	 *               parameter. Returning {@code null} will stop the event from
+	 *               being dispatched.
 	 */
-	Type getGenericType();
+	@Nullable
+	default <E extends Event> E onEvent(@NotNull EventBus bus, @NotNull E event) {
+		return event;
+	}
+
+	/**
+	 * Called when an exception is encountered while handling an
+	 * {@link EventListener}.
+	 * 
+	 * @param bus       the bus on which the event was fired
+	 * @param event     the event
+	 * @param throwable the caught exception
+	 * @param listener  the listener who threw this exception
+	 */
+	default void onException(@NotNull EventBus bus, @NotNull Event event, @NotNull Throwable throwable,
+			@NotNull EventListener listener) {
+	}
 }

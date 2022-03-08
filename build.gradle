@@ -15,7 +15,7 @@ plugins {
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 group = "io.github.matyrobbrt"
-archivesBaseName = "curseforgeapi"
+archivesBaseName = "eventdispatcher"
 version = "${version}"
 
 repositories {
@@ -60,7 +60,6 @@ java {
     withSourcesJar()
 }
 
-// TODO fix names for publishing to maven
 allprojects {
     compileJava {
         options.release = 17
@@ -75,9 +74,9 @@ allprojects {
             mavenJava(MavenPublication) {
                 from components.java
                 pom {
-                    name = "curseforgeapi"
-                    description = "A Java wrapper for the CurseForge API"
-                    url = 'https://github.com/Matyrobbrt/CurseForgeJavaAPI'
+                    name = "eventdispatcher"
+                    description = "A library that provides EventDispatchers for firing and listening to events"
+                    url = 'https://github.com/Matyrobbrt/EventDispatcher'
                     licenses {
                         license {
                             name = 'MIT License'
@@ -92,9 +91,9 @@ allprojects {
                         }
                     }
                     scm {
-                        connection = 'scm:git:git:github.com/matyrobbrt/curseforgejavaapi.git'
-                        developerConnection = 'scm:git:ssh://github.com/Matyrobbrt/CurseForgeJavaAPI.git'
-                        url = 'https://github.com/Matyrobbrt/CurseForgeJavaAPI'
+                        connection = 'scm:git:git:github.com/matyrobbrt/eventdispatcher.git'
+                        developerConnection = 'scm:git:ssh://github.com/Matyrobbrt/EventDispatcher.git'
+                        url = 'https://github.com/Matyrobbrt/EventDispatcher'
                     }
                 }
             }
