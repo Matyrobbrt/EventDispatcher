@@ -169,7 +169,8 @@ public final class EventBusImpl implements EventBus {
 	private Stream<Method> collectMethodsFromClass(Class<?> clazz, boolean warnIfWrongModifier) {
 		return Arrays.stream(clazz.getDeclaredMethods())
                 .filter(mthd -> Modifier.isStatic(mthd.getModifiers()))
-                .filter(mthd -> mthd.isAnnotationPresent(SubscribeEvent.class) && methodCanBeListener(mthd, warnIfWrongModifier));
+                .filter(mthd -> mthd.isAnnotationPresent(SubscribeEvent.class))
+                .filter(mthd -> methodCanBeListener(mthd, warnIfWrongModifier));
 	}
 	private Stream<Method> collectMethodsFromObject(Object obj, boolean warnIfWrongModifier) {
 		final HashSet<Class<?>> parents = new HashSet<>();
@@ -178,7 +179,8 @@ public final class EventBusImpl implements EventBus {
                 .filter(m -> !Modifier.isStatic(m.getModifiers()))
                 .flatMap(m -> parents.stream() // This search is for registering methods from subtypes
                         .map(c -> getActualMethod(c, m))
-                        .filter(subM -> subM.isPresent() && subM.get().isAnnotationPresent(SubscribeEvent.class) && methodCanBeListener(subM.get(), warnIfWrongModifier))
+                        .filter(subM -> subM.isPresent() && subM.get().isAnnotationPresent(SubscribeEvent.class))
+                        .filter(subM -> methodCanBeListener(subM.get(), warnIfWrongModifier))
                         .findFirst()
                         .stream()
                         .filter(Optional::isPresent)
