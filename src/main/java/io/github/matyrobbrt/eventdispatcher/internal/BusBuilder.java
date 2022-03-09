@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventBus;
 import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
+import io.github.matyrobbrt.eventdispatcher.reflections.AnnotationProvider;
 
 /**
  * A Builder for creating {@link EventBus} instances.
@@ -50,6 +51,7 @@ public final class BusBuilder {
 	private Class<? extends Event> baseEventType = Event.class;
 	private final List<EventInterceptor> interceptors = new ArrayList<>();
 	private Logger logger;
+	private final List<AnnotationProvider> annotationProviders = new ArrayList<>();
 
 	private BusBuilder(String name) {
 		this.name = name;
@@ -100,14 +102,42 @@ public final class BusBuilder {
 	}
 
 	/**
+	 * Adds an
+	 * {@link io.github.matyrobbrt.eventdispatcher.reflections.AnnotationProvider}
+	 * to the annotation providers of the bus.
+	 * 
+	 * @param  provider the provider to add
+	 * @return          the builder instance
+	 */
+	public BusBuilder addAnnotationProvider(AnnotationProvider provider) {
+		this.annotationProviders.add(provider);
+		return this;
+	}
+
+	/**
+	 * Adds
+	 * {@link io.github.matyrobbrt.eventdispatcher.reflections.AnnotationProvider}s
+	 * to the annotation providers of the bus.
+	 * 
+	 * @param  providers the providers to add
+	 * @return           the builder instance
+	 */
+	public BusBuilder addAnnotationProviders(AnnotationProvider... providers) {
+		this.annotationProviders.addAll(Arrays.asList(providers));
+		return this;
+	}
+
+	/**
 	 * Builds the {@link EventBus}.
 	 * 
 	 * @return the built {@link EventBus}
 	 */
 	public EventBus build() {
-		return new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
+		final var bus = new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
 				logger == null ? LoggerFactory.getLogger("EventBus %s".formatted(name)) : logger,
 				new MultiEventInterceptor(interceptors));
+		annotationProviders.forEach(provider -> provider.register(bus::register, bus::register));
+		return bus;
 	}
 
 	/**
