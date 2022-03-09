@@ -38,6 +38,7 @@ import io.github.matyrobbrt.eventdispatcher.EventListener;
  * @author matyrobbrt
  *
  */
+@org.jetbrains.annotations.ApiStatus.Internal
 public record EventListenerInstance(int priority, EventListener listener) implements EventListener {
 
 	@Override

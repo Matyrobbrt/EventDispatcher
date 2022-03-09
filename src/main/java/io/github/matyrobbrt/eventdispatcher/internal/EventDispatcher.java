@@ -37,6 +37,7 @@ import java.util.function.Predicate;
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 
+@org.jetbrains.annotations.ApiStatus.Internal
 public class EventDispatcher implements EventListener {
 
 	private final List<EventListenerInstance> listeners = Collections.synchronizedList(new ArrayList<>());
