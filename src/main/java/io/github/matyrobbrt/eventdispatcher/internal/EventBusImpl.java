@@ -27,7 +27,6 @@
 
 package io.github.matyrobbrt.eventdispatcher.internal;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -250,15 +249,10 @@ public final class EventBusImpl implements EventBus {
 	}
 
 	private void register(Class<?> eventType, int priority, Object target, Method method) {
-		try {
-			final ASMEventListener asm = new ASMEventListener(target, method,
-					GenericEvent.class.isAssignableFrom(eventType));
+		final ASMEventListener asm = new ASMEventListener(target, method,
+				GenericEvent.class.isAssignableFrom(eventType));
 
-			addListener((Class<? extends Event>) eventType, e -> true, priority, asm);
-		} catch (IllegalAccessException | InstantiationException | NoSuchMethodException
-				| InvocationTargetException e) {
-			logger.error("Exception registering event handler {}:{}", eventType, method, e);
-		}
+		addListener((Class<? extends Event>) eventType, e -> true, priority, asm);
 	}
 
 	private boolean methodCanBeListener(Method method, boolean warn) {

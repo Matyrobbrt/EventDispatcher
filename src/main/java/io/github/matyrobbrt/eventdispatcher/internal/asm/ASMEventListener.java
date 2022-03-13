@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under
- * the MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under the
+ * MIT license:
  *
  * MIT License
  *
@@ -27,13 +27,12 @@
 
 package io.github.matyrobbrt.eventdispatcher.internal.asm;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 
+import io.github.matyrobbrt.asmutils.wrapper.ConsumerWrapper;
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 import io.github.matyrobbrt.eventdispatcher.GenericEvent;
@@ -48,21 +47,21 @@ import io.github.matyrobbrt.eventdispatcher.GenericEvent;
 public class ASMEventListener implements EventListener {
 
 	private final EventListener listener;
-	private final Class<?> wrapper;
+	private final ConsumerWrapper<? super Event> wrapper;
 	private final Method method;
 	private final Object ownerInstance;
 	private Type filter = null;
 
 	public ASMEventListener(Object ownerInstance, Method method, boolean isGeneric)
-			throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NoSuchMethodException, SecurityException {
+			throws IllegalArgumentException, SecurityException {
 		this.ownerInstance = ownerInstance;
 		this.method = method;
-		this.wrapper = ASMListenerGenerator.createMethodWrapper(method);
-		if (Modifier.isStatic(method.getModifiers())) {
-			listener = (EventListener) wrapper.getDeclaredConstructor().newInstance();
+		this.wrapper = ConsumerWrapper.create(method);
+		if (wrapper.isStatic()) {
+			listener = wrapper::accept;
 		} else {
-			listener = (EventListener) wrapper.getDeclaredConstructor(Object.class).newInstance(ownerInstance);
+			final var consumer = wrapper.onTarget(ownerInstance);
+			listener = consumer::accept;
 		}
 		if (isGeneric) {
 			final var genericType = method.getGenericParameterTypes()[0];
