@@ -56,7 +56,7 @@ public class ASMEventListener implements EventListener {
 			throws IllegalArgumentException, SecurityException {
 		this.ownerInstance = ownerInstance;
 		this.method = method;
-		this.wrapper = ConsumerWrapper.create(method);
+		this.wrapper = ConsumerWrapper.wrap(method);
 		if (wrapper.isStatic()) {
 			listener = wrapper::accept;
 		} else {
