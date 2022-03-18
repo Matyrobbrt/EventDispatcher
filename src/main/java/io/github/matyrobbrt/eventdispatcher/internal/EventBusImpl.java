@@ -117,7 +117,7 @@ public final class EventBusImpl implements EventBus {
 	@Override
 	public <T extends Event> void addListener(int priority, Consumer<T> consumer) {
 		final var eClass = getEventClass(consumer);
-		if (baseEventType.isAssignableFrom(eClass)) {
+		if (!baseEventType.isAssignableFrom(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
 		}
@@ -129,7 +129,7 @@ public final class EventBusImpl implements EventBus {
 	public <F, E extends GenericEvent<F>> void addGenericListener(int priority, @NotNull Class<F> genericFilter,
 			@NotNull Consumer<E> consumer) {
 		final var eClass = getEventClass(consumer);
-		if (baseEventType.isAssignableFrom(eClass)) {
+		if (!baseEventType.isAssignableFrom(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
 		}
