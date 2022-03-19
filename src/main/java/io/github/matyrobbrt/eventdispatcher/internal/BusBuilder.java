@@ -52,6 +52,7 @@ public final class BusBuilder {
 	private final List<EventInterceptor> interceptors = new ArrayList<>();
 	private Logger logger;
 	private final List<AnnotationProvider> annotationProviders = new ArrayList<>();
+	private boolean walksEventHierarchy;
 
 	private BusBuilder(String name) {
 		this.name = name;
@@ -128,6 +129,21 @@ public final class BusBuilder {
 	}
 
 	/**
+	 * Sets if the bus will walk event type hierarchy when dispatching events. <br>
+	 * If {@code true}, the bus will fire the event to listeners listening to its
+	 * subclasses.
+	 * 
+	 * @param  walksEventHierarchy if the bus will walk event hierarchy when
+	 *                             dispatching events
+	 * @return                     the builder instance
+	 * @since                      1.3.0
+	 */
+	public BusBuilder walksEventHierarcy(boolean walksEventHierarchy) {
+		this.walksEventHierarchy = walksEventHierarchy;
+		return this;
+	}
+
+	/**
 	 * Builds the {@link EventBus}.
 	 * 
 	 * @return the built {@link EventBus}
@@ -135,7 +151,7 @@ public final class BusBuilder {
 	public EventBus build() {
 		final var bus = new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
 				logger == null ? LoggerFactory.getLogger("EventBus %s".formatted(name)) : logger,
-				new MultiEventInterceptor(interceptors));
+				new MultiEventInterceptor(interceptors), walksEventHierarchy);
 		annotationProviders.forEach(provider -> provider.register(bus::register, bus::register));
 		return bus;
 	}

@@ -50,6 +50,7 @@ import io.github.matyrobbrt.eventdispatcher.EventListener;
 import io.github.matyrobbrt.eventdispatcher.GenericEvent;
 import io.github.matyrobbrt.eventdispatcher.SubscribeEvent;
 import io.github.matyrobbrt.eventdispatcher.internal.asm.ASMEventListener;
+import io.github.matyrobbrt.eventdispatcher.util.ClassWalker;
 import net.jodah.typetools.TypeResolver;
 
 /**
@@ -60,7 +61,7 @@ import net.jodah.typetools.TypeResolver;
  */
 @org.jetbrains.annotations.ApiStatus.Internal
 @SuppressWarnings("unchecked")
-public final class EventBusImpl implements EventBus {
+final class EventBusImpl implements EventBus {
 
 	private final Map<Class<? extends Event>, EventDispatcher> dispatchers = Collections
 			.synchronizedMap(new HashMap<>());
@@ -69,12 +70,15 @@ public final class EventBusImpl implements EventBus {
 	private final Logger logger;
 	private final EventInterceptor interceptor;
 	private volatile boolean shutdown = false;
+	private final boolean walksEventHierarchy;
 
-	EventBusImpl(String name, Class<? extends Event> baseEventType, Logger logger, EventInterceptor interceptor) {
+	EventBusImpl(String name, Class<? extends Event> baseEventType, Logger logger, EventInterceptor interceptor,
+			boolean walksEventHierarchy) {
 		this.name = name;
 		this.baseEventType = baseEventType;
 		this.logger = logger;
 		this.interceptor = interceptor;
+		this.walksEventHierarchy = walksEventHierarchy;
 	}
 
 	@Override
@@ -85,6 +89,11 @@ public final class EventBusImpl implements EventBus {
 	@Override
 	public Class<? extends Event> getBaseEventType() {
 		return baseEventType;
+	}
+
+	@Override
+	public boolean walksEventHierarchy() {
+		return walksEventHierarchy;
 	}
 
 	@Override
@@ -106,12 +115,39 @@ public final class EventBusImpl implements EventBus {
 	@Override
 	public void post(Event event) {
 		final var eClass = event.getClass();
-		if (shutdown || !baseEventType.isAssignableFrom(eClass)) { return; }
-		final var newEvent = interceptor.onEvent(this, event);
-		if (newEvent != null) {
-			getDispatcher(eClass).handleWithExceptionCatch(newEvent,
-					(listener, t) -> interceptor.onException(this, event, t, listener));
+		if (shutdown)
+			return;
+		if (walksEventHierarchy) {
+			ClassWalker.range(eClass, baseEventType).forEach(eParent -> {
+				if (baseEventType.isAssignableFrom(eParent)) {
+					tryPostEvent((Class<? extends Event>) eParent, event);
+				}
+			});
+		} else {
+			tryPostEvent(eClass, event);
 		}
+	}
+
+	private void tryPostEvent(final Class<? extends Event> eventClass, final Event event) {
+		if (!baseEventType.isAssignableFrom(eventClass)) {
+			logger.warn("Tried posting event '{}' of type '{}' which is not assignable to the base event type '{}'!",
+					event, eventClass, baseEventType);
+		} else if (!Modifier.isPublic(eventClass.getModifiers())) {
+			logger.warn(
+					"Tried posting event '{}' of the not public type '{}'. Please ensure that event classes are public!",
+					event, eventClass);
+		} else {
+			final var newEvent = interceptor.onEvent(this, event);
+			if (newEvent != null) {
+				getDispatcher(eventClass).handleWithExceptionCatch(newEvent,
+						(listener, t) -> interceptor.onException(this, event, t, listener));
+			}
+		}
+	}
+
+	@Override
+	public void addUniversalListener(int priority, EventListener listener) {
+		getDispatcher(baseEventType).register(priority, listener);
 	}
 
 	@Override

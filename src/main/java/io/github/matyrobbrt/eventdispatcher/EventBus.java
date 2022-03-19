@@ -50,6 +50,32 @@ public interface EventBus {
 	void post(@NotNull Event event);
 
 	/**
+	 * Adds an universal listener to the bus. <br>
+	 * If the bus {@link #walksEventHierarchy() walks event hierarchy}, then the
+	 * listener will be handled on all events. Otherwise, the listener will be fired
+	 * only when an event of the <i>exact</i> {@link #getBaseEventType() base type}
+	 * is posted.
+	 * 
+	 * @param priority the priority of the listener. <strong>Higher priority ==
+	 *                 first to run</strong>
+	 * @param listener the listener to add
+	 */
+	void addUniversalListener(int priority, @NotNull EventListener listener);
+
+	/**
+	 * Adds an universal listener to the bus, with priority 0 (neutral). <br>
+	 * If the bus {@link #walksEventHierarchy() walks event hierarchy}, then the
+	 * listener will be handled on all events. Otherwise, the listener will be fired
+	 * only when an event of the <i>exact</i> {@link #getBaseEventType() base type}
+	 * is posted.
+	 * 
+	 * @param listener the listener to add
+	 */
+	default void addUniversalListener(@NotNull EventListener listener) {
+		addUniversalListener(0, listener);
+	}
+
+	/**
 	 * Adds an event listener to the bus.
 	 * 
 	 * @param <E>      the type of the event to listen for
@@ -151,6 +177,14 @@ public interface EventBus {
 	 * @return the name of the bus.
 	 */
 	String getName();
+
+	/**
+	 * Checks if this bus walks event type hierarchy when dispatching events.
+	 * 
+	 * @return if this bus walks event type hierarchy when dispatching events
+	 * @since  1.3.0
+	 */
+	boolean walksEventHierarchy();
 
 	/**
 	 * Starts this bus, if it is {@link #isShutdown() shutdown}.

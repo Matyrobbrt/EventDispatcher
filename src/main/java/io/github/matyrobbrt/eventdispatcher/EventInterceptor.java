@@ -43,13 +43,17 @@ public interface EventInterceptor {
 	 * Usually used for modifying events before they are dispatched, or for logging
 	 * their firing.
 	 * 
-	 * @param  <E>   the type of the intercepted event
-	 * @param  bus   the bus on which the event was fired
-	 * @param  event the intercepted event
-	 * @return       a (maybe) modified event, which will be dispatched to
-	 *               listeners. Usually, this is the {@code event} received as a
-	 *               parameter. Returning {@code null} will stop the event from
-	 *               being dispatched.
+	 * @apiNote       Changing the event to a totally different one is not
+	 *                supported. In those cases, it is preferred that {@code null}
+	 *                is returned, and the new event is posted to the {@code bus}.
+	 * 
+	 * @param   <E>   the type of the intercepted event
+	 * @param   bus   the bus on which the event was fired
+	 * @param   event the intercepted event
+	 * @return        a (maybe) modified event, which will be dispatched to
+	 *                listeners. Usually, this is the {@code event} received as a
+	 *                parameter. Returning {@code null} will stop the event from
+	 *                being dispatched.
 	 */
 	@Nullable
 	default <E extends Event> E onEvent(@NotNull EventBus bus, @NotNull E event) {
