@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under
- * the MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under the
+ * MIT license:
  *
  * MIT License
  *
@@ -185,6 +185,18 @@ public interface EventBus {
 	 * @since  1.3.0
 	 */
 	boolean walksEventHierarchy();
+
+	/**
+	 * Checks if this bus is async. If it is, any {@link #post(Event)} calls will
+	 * dispatch and handle the event on the {@link #getExecutor() dispatch
+	 * executor}. Otherwise, calls to {@link #post(Event)} will have the event
+	 * dispatched and handled on the same thread as the caller, making the operation
+	 * <strong>blocking</strong>.
+	 * 
+	 * @return if the bus is asynchronous
+	 * @since  1.4.0
+	 */
+	boolean isAsync();
 
 	/**
 	 * Starts this bus, if it is {@link #isShutdown() shutdown}.

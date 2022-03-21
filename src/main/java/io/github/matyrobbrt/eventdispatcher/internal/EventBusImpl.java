@@ -36,11 +36,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.matyrobbrt.eventdispatcher.Event;
@@ -72,13 +74,23 @@ final class EventBusImpl implements EventBus {
 	private volatile boolean shutdown = false;
 	private final boolean walksEventHierarchy;
 
+	private final boolean async;
+	private final Executor executor;
+
 	EventBusImpl(String name, Class<? extends Event> baseEventType, Logger logger, EventInterceptor interceptor,
-			boolean walksEventHierarchy) {
+			boolean walksEventHierarchy, @Nullable Executor executor) {
 		this.name = name;
 		this.baseEventType = baseEventType;
 		this.logger = logger;
 		this.interceptor = interceptor;
 		this.walksEventHierarchy = walksEventHierarchy;
+
+		this.async = executor != null;
+		this.executor = executor == null ? /*
+											 * If no executor was specified, then run the command directly on the caller
+											 * thread.
+											 */
+				Runnable::run : executor;
 	}
 
 	@Override
@@ -94,6 +106,11 @@ final class EventBusImpl implements EventBus {
 	@Override
 	public boolean walksEventHierarchy() {
 		return walksEventHierarchy;
+	}
+
+	@Override
+	public boolean isAsync() {
+		return async;
 	}
 
 	@Override
@@ -115,16 +132,21 @@ final class EventBusImpl implements EventBus {
 	@Override
 	public void post(Event event) {
 		final var eClass = event.getClass();
-		if (shutdown)
+		if (shutdown) {
 			return;
+		}
 		if (walksEventHierarchy) {
-			ClassWalker.range(eClass, baseEventType).forEach(eParent -> {
-				if (baseEventType.isAssignableFrom(eParent)) {
-					tryPostEvent((Class<? extends Event>) eParent, event);
-				}
+			executor.execute(() -> {
+				ClassWalker.range(eClass, baseEventType).forEach(eParent -> {
+					if (baseEventType.isAssignableFrom(eParent)) {
+						// The event handling is not split here, because async requests in this case
+						// might modify the event without others knowing
+						tryPostEvent((Class<? extends Event>) eParent, event);
+					}
+				});
 			});
 		} else {
-			tryPostEvent(eClass, event);
+			executor.execute(() -> tryPostEvent(eClass, event));
 		}
 	}
 
@@ -325,6 +347,10 @@ final class EventBusImpl implements EventBus {
 		getDispatcher(eventClass).register(priority, new WithPredicateEventListener<>(eventClass, predicate, listener));
 	}
 
+	private EventDispatcher getDispatcher(Class<? extends Event> eventClass) {
+		return dispatchers.computeIfAbsent(eventClass, k -> new EventDispatcher());
+	}
+
 	private static <T extends Event> Class<T> getEventClass(Consumer<T> consumer) {
 		final Class<T> eventClass = (Class<T>) TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass());
 		if ((Class<?>) eventClass == TypeResolver.Unknown.class) {
@@ -338,10 +364,6 @@ final class EventBusImpl implements EventBus {
 			throw new IllegalArgumentException(
 					"Cannot register a generic event listener with addListener, use addGenericListener");
 		}
-	}
-
-	private EventDispatcher getDispatcher(Class<? extends Event> eventClass) {
-		return dispatchers.computeIfAbsent(eventClass, k -> new EventDispatcher());
 	}
 
 }

@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under
- * the MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under the
+ * MIT license:
  *
  * MIT License
  *
@@ -30,6 +30,7 @@ package io.github.matyrobbrt.eventdispatcher.internal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ public final class BusBuilder {
 	private Logger logger;
 	private final List<AnnotationProvider> annotationProviders = new ArrayList<>();
 	private boolean walksEventHierarchy;
+	private Executor executor;
 
 	private BusBuilder(String name) {
 		this.name = name;
@@ -144,6 +146,27 @@ public final class BusBuilder {
 	}
 
 	/**
+	 * Sets an executor for dispatching and handling events, effectively making the
+	 * bus {@link EventBus#isAsync() asynchronous}. <br>
+	 * 
+	 * @apiNote          Note that due to the fact that calling
+	 *                   {@link EventBus#post(Event)} will no longer block the
+	 *                   caller thread, a modification of the event cannot be easily
+	 *                   detected. If you fire events for them to be modified in
+	 *                   their handling, it is recommended that you <strong>DO
+	 *                   NOT</strong> set an executor.
+	 * @apiNote          The handling of an event of the same type is <i>still</i>
+	 *                   done on the same thread, but not on the caller one.
+	 * @param   executor sets the executor which dispatches and handles events
+	 * @return           the builder instance
+	 * @since            1.4.0
+	 */
+	public BusBuilder executor(Executor executor) {
+		this.executor = executor;
+		return this;
+	}
+
+	/**
 	 * Builds the {@link EventBus}.
 	 * 
 	 * @return the built {@link EventBus}
@@ -151,7 +174,7 @@ public final class BusBuilder {
 	public EventBus build() {
 		final var bus = new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
 				logger == null ? LoggerFactory.getLogger("EventBus %s".formatted(name)) : logger,
-				new MultiEventInterceptor(interceptors), walksEventHierarchy);
+				new MultiEventInterceptor(interceptors), walksEventHierarchy, executor);
 		annotationProviders.forEach(provider -> provider.register(bus::register, bus::register));
 		return bus;
 	}
@@ -165,4 +188,5 @@ public final class BusBuilder {
 	public static BusBuilder builder(String name) {
 		return new BusBuilder(name);
 	}
+
 }

@@ -65,11 +65,14 @@ public class ASMEventListener implements EventListener {
 		}
 		if (isGeneric) {
 			final var genericType = method.getGenericParameterTypes()[0];
-			if (genericType instanceof ParameterizedType pType) {
+			if (genericType instanceof ParameterizedType) {
+				// Allow backwards compat, so no pattern-matching
+				final var pType = (ParameterizedType) genericType;
 				filter = pType.getActualTypeArguments()[0];
-				if (filter instanceof ParameterizedType pType2) { // Nested generics.. discard them
-					filter = pType2.getRawType();
-				} else if (filter instanceof WildcardType wType) {
+				if (filter instanceof ParameterizedType) { // Nested generics.. discard them
+					filter = ((ParameterizedType) filter).getRawType();
+				} else if (filter instanceof WildcardType) {
+					final var wType = (WildcardType) filter;
 					if (wType.getUpperBounds().length == 1 && wType.getUpperBounds()[0] == Object.class
 							&& wType.getLowerBounds().length == 0) {
 						filter = null;
@@ -82,8 +85,15 @@ public class ASMEventListener implements EventListener {
 	@Override
 	public void handle(Event event) {
 		if (listener != null) {
-			if (filter == null || (event instanceof GenericEvent<?> ge && filter == ge.getGenericType())) {
+			if (filter == null) {
 				listener.handle(event);
+			} else {
+				if (event instanceof GenericEvent<?>) {
+					final var ge = (GenericEvent<?>) event;
+					if (filter == ge.getGenericType()) {
+						listener.handle(event);
+					}
+				}
 			}
 		}
 	}
