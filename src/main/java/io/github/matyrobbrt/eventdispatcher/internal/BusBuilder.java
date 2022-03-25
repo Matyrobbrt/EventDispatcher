@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under the
- * MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under
+ * the MIT license:
  *
  * MIT License
  *
