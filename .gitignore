@@ -5,3 +5,4 @@ bin/
 .classpath
 .env
 build/
+src/main/java/io/github/matyrobbrt/eventdispatcher/util/EventWaiter.java

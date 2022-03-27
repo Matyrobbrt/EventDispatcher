@@ -60,4 +60,14 @@ public final class MultiEventInterceptor implements EventInterceptor {
 			@NotNull EventListener listener) {
 		interceptors.forEach(i -> i.onException(bus, event, throwable, listener));
 	}
+
+	@Override
+	public void onShutdown(@NotNull EventBus bus) {
+		interceptors.forEach(i -> i.onShutdown(bus));
+	}
+
+	@Override
+	public void onStart(@NotNull EventBus bus) {
+		interceptors.forEach(i -> i.onStart(bus));
+	}
 }

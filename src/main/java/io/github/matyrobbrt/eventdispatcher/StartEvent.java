@@ -25,19 +25,30 @@
  * SOFTWARE.
  */
 
-package eventdispatcher.hierarchy;
+package io.github.matyrobbrt.eventdispatcher;
 
-import io.github.matyrobbrt.eventdispatcher.Event;
+/**
+ * This event is fired on a bus, when it is
+ * {@link io.github.matyrobbrt.eventdispatcher.EventBus#start() started}. <br>
+ * The event will not be fired on the initial start of the bus (when it is
+ * instantiated). <br>
+ * This event will always be fired, and even if the bus
+ * {@link io.github.matyrobbrt.eventdispatcher.EventBus#walksEventHierarchy()
+ * walks event hierarchy} its hierarchy will <strong>not</strong> be walked.
+ */
+public final class StartEvent implements Event {
 
-public class HT$EventSubclass implements Event {
+	private final EventBus bus;
 
-	private int numberA = 5;
-
-	public int getNumberA() {
-		return numberA;
+	public StartEvent(EventBus bus) {
+		this.bus = bus;
 	}
 
-	public void setNumberA(int numberA) {
-		this.numberA = numberA;
+	/**
+	 * @return the bus that was started
+	 */
+	public EventBus getBus() {
+		return bus;
 	}
+
 }

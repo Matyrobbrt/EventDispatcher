@@ -50,6 +50,8 @@ import io.github.matyrobbrt.eventdispatcher.EventBus;
 import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 import io.github.matyrobbrt.eventdispatcher.GenericEvent;
+import io.github.matyrobbrt.eventdispatcher.ShutdownEvent;
+import io.github.matyrobbrt.eventdispatcher.StartEvent;
 import io.github.matyrobbrt.eventdispatcher.SubscribeEvent;
 import io.github.matyrobbrt.eventdispatcher.internal.asm.ASMEventListener;
 import io.github.matyrobbrt.eventdispatcher.util.ClassWalker;
@@ -116,12 +118,17 @@ final class EventBusImpl implements EventBus {
 	@Override
 	public void shutdown() {
 		this.shutdown = true;
+		interceptor.onShutdown(this);
+		getDispatcher(ShutdownEvent.class).handle(new ShutdownEvent(this));
 		logger.warn("EventBus {} shutting down - future events will not be posted.", getName());
 	}
 
 	@Override
 	public void start() {
 		this.shutdown = false;
+		interceptor.onStart(this);
+		getDispatcher(StartEvent.class).handle(new StartEvent(this));
+		logger.warn("EventBus {} is starting - future events will be posted.", getName());
 	}
 
 	@Override
@@ -151,7 +158,7 @@ final class EventBusImpl implements EventBus {
 	}
 
 	private void tryPostEvent(final Class<? extends Event> eventClass, final Event event) {
-		if (!baseEventType.isAssignableFrom(eventClass)) {
+		if (!eventClassIsAccepted(eventClass)) {
 			logger.warn("Tried posting event '{}' of type '{}' which is not assignable to the base event type '{}'!",
 					event, eventClass, baseEventType);
 		} else if (!Modifier.isPublic(eventClass.getModifiers())) {
@@ -167,6 +174,11 @@ final class EventBusImpl implements EventBus {
 		}
 	}
 
+	private boolean eventClassIsAccepted(final Class<?> eventClass) {
+		return baseEventType == Event.class || baseEventType.isAssignableFrom(eventClass)
+				|| eventClass == ShutdownEvent.class || eventClass == StartEvent.class;
+	}
+
 	@Override
 	public void addUniversalListener(int priority, EventListener listener) {
 		getDispatcher(baseEventType).register(priority, listener);
@@ -175,7 +187,7 @@ final class EventBusImpl implements EventBus {
 	@Override
 	public <T extends Event> void addListener(int priority, Consumer<T> consumer) {
 		final var eClass = getEventClass(consumer);
-		if (!baseEventType.isAssignableFrom(eClass)) {
+		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
 		}
@@ -187,7 +199,7 @@ final class EventBusImpl implements EventBus {
 	public <F, E extends GenericEvent<F>> void addGenericListener(int priority, @NotNull Class<F> genericFilter,
 			@NotNull Consumer<E> consumer) {
 		final var eClass = getEventClass(consumer);
-		if (!baseEventType.isAssignableFrom(eClass)) {
+		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
 		}
@@ -271,12 +283,7 @@ final class EventBusImpl implements EventBus {
 
 		Class<?> eventType = parameterTypes[0];
 
-		if (!Event.class.isAssignableFrom(eventType)) {
-			throw new IllegalArgumentException(
-					"Method %s has @SubscribeEvent annotation, but takes an argument that is not a subtype of Event: %s"
-							.formatted(method, eventType));
-		}
-		if (baseEventType != Event.class && !baseEventType.isAssignableFrom(eventType)) {
+		if (!eventClassIsAccepted(eventType)) {
 			throw new IllegalArgumentException(
 					"Method %s has @SubscribeEvent annotation, but takes an argument that is not a subtype of the base type %s: %s"
 							.formatted(method, baseEventType, eventType));
@@ -290,7 +297,7 @@ final class EventBusImpl implements EventBus {
 		if (parameterTypes.length != 1)
 			return;
 		Class<?> eventType = parameterTypes[0];
-		if (!Event.class.isAssignableFrom(eventType) || !baseEventType.isAssignableFrom(eventType))
+		if (!eventClassIsAccepted(eventType))
 			return;
 		getDispatcher((Class<? extends Event>) eventType).unregister(l -> {
 			ASMEventListener asm = null;

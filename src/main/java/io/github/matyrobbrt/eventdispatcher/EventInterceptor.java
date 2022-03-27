@@ -31,7 +31,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * An interface used for intercepting events fired on an {@link EventBus}.
+ * An interface used for intercepting events fired on an {@link EventBus}, or
+ * for tracking the status of a bus.
  * 
  * @author matyrobbrt
  *
@@ -71,5 +72,24 @@ public interface EventInterceptor {
 	 */
 	default void onException(@NotNull EventBus bus, @NotNull Event event, @NotNull Throwable throwable,
 			@NotNull EventListener listener) {
+	}
+
+	/**
+	 * Called when an {@link EventBus} is shut down.
+	 * 
+	 * @param bus the bus that was shut down
+	 */
+	default void onShutdown(@NotNull EventBus bus) {
+
+	}
+
+	/**
+	 * Called when an {@link EventBus} was {@link EventBus#start() started} after
+	 * being previously shut down.
+	 * 
+	 * @param bus the bus that was started
+	 */
+	default void onStart(@NotNull EventBus bus) {
+
 	}
 }
