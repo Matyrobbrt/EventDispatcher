@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under
- * the MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under the
+ * MIT license:
  *
  * MIT License
  *
@@ -138,10 +138,8 @@ final class EventBusImpl implements EventBus {
 
 	@Override
 	public void post(Event event) {
-		final var eClass = event.getClass();
-		if (shutdown) {
-			return;
-		}
+		final Class<? extends Event> eClass = event.getClass();
+		if (shutdown) { return; }
 		if (walksEventHierarchy) {
 			executor.execute(() -> {
 				ClassWalker.range(eClass, baseEventType).forEach(eParent -> {
@@ -166,7 +164,7 @@ final class EventBusImpl implements EventBus {
 					"Tried posting event '{}' of the not public type '{}'. Please ensure that event classes are public!",
 					event, eventClass);
 		} else {
-			final var newEvent = interceptor.onEvent(this, event);
+			final Event newEvent = interceptor.onEvent(this, event);
 			if (newEvent != null) {
 				getDispatcher(eventClass).handleWithExceptionCatch(newEvent,
 						(listener, t) -> interceptor.onException(this, event, t, listener));
@@ -186,7 +184,7 @@ final class EventBusImpl implements EventBus {
 
 	@Override
 	public <T extends Event> void addListener(int priority, Consumer<T> consumer) {
-		final var eClass = getEventClass(consumer);
+		final Class<T> eClass = getEventClass(consumer);
 		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
@@ -198,7 +196,7 @@ final class EventBusImpl implements EventBus {
 	@Override
 	public <F, E extends GenericEvent<F>> void addGenericListener(int priority, @NotNull Class<F> genericFilter,
 			@NotNull Consumer<E> consumer) {
-		final var eClass = getEventClass(consumer);
+		final Class<E> eClass = getEventClass(consumer);
 		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
 					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
@@ -208,8 +206,8 @@ final class EventBusImpl implements EventBus {
 
 	@Override
 	public void register(Object object) {
-		if (object instanceof Class<?> clazz) {
-			registerClass(clazz);
+		if (object instanceof Class<?>) {
+			registerClass((Class<?>) object);
 		} else {
 			registerObject(object);
 		}
@@ -274,14 +272,14 @@ final class EventBusImpl implements EventBus {
 	//@formatter:on
 
 	private void registerListener(final int priority, final Object target, final Method method) {
-		Class<?>[] parameterTypes = method.getParameterTypes();
+		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (parameterTypes.length != 1) {
 			throw new IllegalArgumentException(
 					"Method %s has @SubscribeEvent annotation. It has %s arguments, but event handler methods require a single argument."
 							.formatted(method, parameterTypes.length));
 		}
 
-		Class<?> eventType = parameterTypes[0];
+		final Class<?> eventType = parameterTypes[0];
 
 		if (!eventClassIsAccepted(eventType)) {
 			throw new IllegalArgumentException(
@@ -293,22 +291,24 @@ final class EventBusImpl implements EventBus {
 	}
 
 	private void unregisterListener(final Object target, final Method method) {
-		Class<?>[] parameterTypes = method.getParameterTypes();
+		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (parameterTypes.length != 1)
 			return;
-		Class<?> eventType = parameterTypes[0];
+		final Class<?> eventType = parameterTypes[0];
 		if (!eventClassIsAccepted(eventType))
 			return;
 		getDispatcher((Class<? extends Event>) eventType).unregister(l -> {
 			ASMEventListener asm = null;
-			if (l instanceof ASMEventListener a) {
-				asm = a;
-			} else if (l instanceof WithPredicateEventListener<?> p) {
-				if (p.handler() instanceof ASMEventListener a) {
-					asm = a;
+			if (l instanceof ASMEventListener) {
+				asm = (ASMEventListener) l;
+			} else if (l instanceof WithPredicateEventListener<?>) {
+				final WithPredicateEventListener<?> p = (WithPredicateEventListener<?>) l;
+				if (p.handler() instanceof ASMEventListener) {
+					asm = (ASMEventListener) p.handler();
 				}
 			}
-			if (asm == null) { return false; }
+			if (asm == null)
+				return false;
 			return asm.isSame(method) && asm.isSame(target);
 		});
 	}

@@ -1,6 +1,6 @@
 /*
- * This file is part of the Event Dispatcher library and is licensed under
- * the MIT license:
+ * This file is part of the Event Dispatcher library and is licensed under the
+ * MIT license:
  *
  * MIT License
  *
@@ -32,16 +32,37 @@ import java.util.function.Predicate;
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventListener;
 
-public record WithPredicateEventListener<E extends Event> (Class<? super E> eventType, Predicate<? super E> predicate,
-		EventListener handler)
-		implements EventListener {
+public final class WithPredicateEventListener<E extends Event> implements EventListener {
 
-	@SuppressWarnings("unchecked")
+	private final Class<? super E> eventType;
+	private final Predicate<? super E> predicate;
+	private final EventListener handler;
+
+	public WithPredicateEventListener(Class<? super E> eventType, Predicate<? super E> predicate,
+			EventListener handler) {
+		this.eventType = eventType;
+		this.predicate = predicate;
+		this.handler = handler;
+	}
+
 	@Override
+	@SuppressWarnings("unchecked")
 	public void handle(Event event) {
 		if (eventType.isAssignableFrom(event.getClass()) && predicate.test((E) event)) {
 			handler.handle(event);
 		}
+	}
+	
+	public Class<? super E> eventType() {
+		return eventType;
+	}
+	
+	public Predicate<? super E> predicate() {
+		return predicate;
+	}
+
+	public EventListener handler() {
+		return handler;
 	}
 
 }
