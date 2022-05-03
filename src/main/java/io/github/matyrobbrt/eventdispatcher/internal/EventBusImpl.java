@@ -27,6 +27,9 @@
 
 package io.github.matyrobbrt.eventdispatcher.internal;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -45,6 +48,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+import io.github.matyrobbrt.eventdispatcher.BusRegistrable;
 import io.github.matyrobbrt.eventdispatcher.Event;
 import io.github.matyrobbrt.eventdispatcher.EventBus;
 import io.github.matyrobbrt.eventdispatcher.EventInterceptor;
@@ -255,19 +259,61 @@ final class EventBusImpl implements EventBus {
 	}
 	
 	private void registerClass(final Class<?> clazz) {
+		if (clazz.isAnnotationPresent(BusRegistrable.ForClass.class)) {
+			final var ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
+			if (!ann.registered().isBlank()) {
+				try {
+					final var mthd = tryFindMethod(clazz, ann.registered());
+					try {
+						mthd.invoke(this);
+					} catch (Throwable e) {
+						logger.error("Exception trying to fire static registered listener for clazz '{}'", clazz);
+					}
+				} catch (NoSuchMethodException | IllegalAccessException e) {
+					logger.error("Could not find registered listener static method in class '{}', with name '{}'", clazz, ann.registered());
+				}
+			}
+		}
         collectMethodsFromClass(clazz, true).forEach(mthd -> registerListener(mthd.getAnnotation(SubscribeEvent.class).priority(), clazz, mthd));
     }
 
 	private void registerObject(final Object obj) {
+		if (obj instanceof BusRegistrable) {
+			((BusRegistrable) obj).whenRegistered(this);
+		}
         collectMethodsFromObject(obj, true).forEach(m -> registerListener(m.getAnnotation(SubscribeEvent.class).priority(), obj, m));
     }
 	
 	private void unregisterClass(final Class<?> clazz) {
+		if (clazz.isAnnotationPresent(BusRegistrable.ForClass.class)) {
+			final var ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
+			if (!ann.unregistered().isBlank()) {
+				try {
+					final var mthd = tryFindMethod(clazz, ann.unregistered());
+					try {
+						mthd.invoke(this);
+					} catch (Throwable e) {
+						logger.error("Exception trying to fire static unregistered listener for class '{}'", clazz);
+					}
+				} catch (NoSuchMethodException | IllegalAccessException e) {
+					logger.error("Could not find unregistered listener static method in class '{}', with name '{}'", clazz, ann.unregistered());
+				}
+			}
+		}
 		collectMethodsFromClass(clazz, false).forEach(mthd -> unregisterListener(clazz, mthd));
 	}
 	
 	private void unregisterObject(final Object obj) {
+		if (obj instanceof BusRegistrable) {
+			((BusRegistrable) obj).whenUnregistered(this);
+		}
 		collectMethodsFromObject(obj, false).forEach(m -> unregisterListener(obj, m));
+	}
+	
+	private static MethodHandle tryFindMethod(Class<?> clazz, String name) throws NoSuchMethodException, IllegalAccessException {
+		final var lookup = MethodHandles.lookup();
+		final var descriptor = MethodType.methodType(void.class, EventBus.class);
+		return lookup.findStatic(clazz, name, descriptor);
 	}
 	//@formatter:on
 
