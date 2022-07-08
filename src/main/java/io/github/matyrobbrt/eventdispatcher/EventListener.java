@@ -36,11 +36,11 @@ package io.github.matyrobbrt.eventdispatcher;
 @FunctionalInterface
 public interface EventListener {
 
-	/**
-	 * Handles an event
-	 * 
-	 * @param event the event
-	 */
-	void handle(Event event);
+    /**
+     * Handles an event
+     * 
+     * @param event the event
+     */
+    void handle(Event event);
 
 }

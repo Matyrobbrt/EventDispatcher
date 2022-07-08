@@ -49,7 +49,7 @@ final class HierarchyTest {
 
 	@Test
 	void testWithHierarchy() {
-		final var event = new HT$MainEvent();
+        final HT$MainEvent event = new HT$MainEvent();
 		WITH_HIERARCHY.post(event);
 		assertThat(event.getNumberA()).isEqualTo(12);
 		assertThat(event.getNumberB()).isEqualTo(120);
@@ -57,7 +57,7 @@ final class HierarchyTest {
 
 	@Test
 	void testWithoutHierarchy() {
-		final var event = new HT$MainEvent();
+        final HT$MainEvent event = new HT$MainEvent();
 		WITHOUT_HIERARCHY.post(event);
 		assertThat(event.getNumberA()).isEqualTo(5);
 		assertThat(event.getNumberB()).isEqualTo(120);
@@ -65,7 +65,7 @@ final class HierarchyTest {
 
 	@BeforeAll
 	static void registerSubscriber() {
-		final var sub = new HierarchySubscriber();
+        final HierarchySubscriber sub = new HierarchySubscriber();
 		WITH_HIERARCHY.register(sub);
 		WITHOUT_HIERARCHY.register(sub);
 	}

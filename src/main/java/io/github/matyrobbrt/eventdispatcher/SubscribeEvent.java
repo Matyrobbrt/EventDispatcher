@@ -57,13 +57,13 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target(METHOD)
 public @interface SubscribeEvent {
 
-	/**
-	 * The priority of this event listener. <br>
-	 * <strong>Higher priority == first to run.</strong> <br>
-	 * Defaults to 0 (neutral priority).
-	 * 
-	 * @return the priority of the listener
-	 */
-	int priority() default 0;
+    /**
+     * The priority of this event listener. <br>
+     * <strong>Higher priority == first to run.</strong> <br>
+     * Defaults to 0 (neutral priority).
+     * 
+     * @return the priority of the listener
+     */
+    int priority() default 0;
 
 }

@@ -172,8 +172,8 @@ public final class BusBuilder {
 	 * @return the built {@link EventBus}
 	 */
 	public EventBus build() {
-		final var bus = new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
-				logger == null ? LoggerFactory.getLogger("EventBus %s".formatted(name)) : logger,
+        final EventBus bus = new EventBusImpl(name, baseEventType == null ? Event.class : baseEventType,
+                logger == null ? LoggerFactory.getLogger(String.format("EventBus %s", name)) : logger,
 				new MultiEventInterceptor(interceptors), walksEventHierarchy, executor);
 		annotationProviders.forEach(provider -> provider.register(bus::register, bus::register));
 		return bus;

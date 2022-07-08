@@ -31,6 +31,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
 
 import io.github.matyrobbrt.asmutils.wrapper.ConsumerWrapper;
 import io.github.matyrobbrt.eventdispatcher.Event;
@@ -60,19 +63,19 @@ public class ASMEventListener implements EventListener {
 		if (wrapper.isStatic()) {
 			listener = wrapper::accept;
 		} else {
-			final var consumer = wrapper.onTarget(ownerInstance);
+            final @NotNull Consumer<? super Event> consumer = wrapper.onTarget(ownerInstance);
 			listener = consumer::accept;
 		}
 		if (isGeneric) {
-			final var genericType = method.getGenericParameterTypes()[0];
+            final Type genericType = method.getGenericParameterTypes()[0];
 			if (genericType instanceof ParameterizedType) {
 				// Allow backwards compat, so no pattern-matching
-				final var pType = (ParameterizedType) genericType;
+                final ParameterizedType pType = (ParameterizedType) genericType;
 				filter = pType.getActualTypeArguments()[0];
 				if (filter instanceof ParameterizedType) { // Nested generics.. discard them
 					filter = ((ParameterizedType) filter).getRawType();
 				} else if (filter instanceof WildcardType) {
-					final var wType = (WildcardType) filter;
+                    final WildcardType wType = (WildcardType) filter;
 					if (wType.getUpperBounds().length == 1 && wType.getUpperBounds()[0] == Object.class
 							&& wType.getLowerBounds().length == 0) {
 						filter = null;
@@ -89,7 +92,7 @@ public class ASMEventListener implements EventListener {
 				listener.handle(event);
 			} else {
 				if (event instanceof GenericEvent<?>) {
-					final var ge = (GenericEvent<?>) event;
+                    final GenericEvent<?> ge = (GenericEvent<?>) event;
 					if (filter == ge.getGenericType()) {
 						listener.handle(event);
 					}

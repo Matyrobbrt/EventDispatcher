@@ -39,12 +39,29 @@ import io.github.matyrobbrt.eventdispatcher.EventListener;
  *
  */
 @org.jetbrains.annotations.ApiStatus.Internal
-public record EventListenerInstance(int priority, EventListener listener) implements EventListener {
+public final class EventListenerInstance implements EventListener {
 
-	@Override
-	public void handle(Event event) {
-		if (event instanceof Cancellable cn && cn.isCancelled()) { return; }
-		listener.handle(event);
-	}
+    private final int priority;
+    private final EventListener listener;
+
+    public int priority() {
+        return priority;
+    }
+
+    public EventListener listener() {
+        return listener;
+    }
+
+    public EventListenerInstance(int priority, EventListener listener) {
+        this.priority = priority;
+        this.listener = listener;
+    }
+
+    @Override
+    public void handle(Event event) {
+        if (event instanceof Cancellable && ((Cancellable) event).isCancelled())
+            return;
+        listener.handle(event);
+    }
 
 }

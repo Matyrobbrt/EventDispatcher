@@ -37,10 +37,10 @@ import java.lang.reflect.Type;
  */
 public interface GenericEvent<T> extends Event {
 
-	/**
-	 * Gets the generic type of this event.
-	 * 
-	 * @return the generic type of the event
-	 */
-	Type getGenericType();
+    /**
+     * Gets the generic type of this event.
+     * 
+     * @return the generic type of the event
+     */
+    Type getGenericType();
 }

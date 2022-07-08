@@ -38,17 +38,17 @@ package io.github.matyrobbrt.eventdispatcher;
  */
 public final class StartEvent implements Event {
 
-	private final EventBus bus;
+    private final EventBus bus;
 
-	public StartEvent(EventBus bus) {
-		this.bus = bus;
-	}
+    public StartEvent(EventBus bus) {
+        this.bus = bus;
+    }
 
-	/**
-	 * @return the bus that was started
-	 */
-	public EventBus getBus() {
-		return bus;
-	}
+    /**
+     * @return the bus that was started
+     */
+    public EventBus getBus() {
+        return bus;
+    }
 
 }

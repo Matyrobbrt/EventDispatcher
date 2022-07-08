@@ -406,7 +406,7 @@ public class EventWaiter implements EventListener, EventInterceptor {
 		@Override
 		boolean attempt(E event) {
 			if (checkEventNotCancelled(event)) {
-				final var ge = (GenericEvent<?>) event;
+                final GenericEvent<?> ge = event;
 				if (filter == ge.getGenericType() && condition.test(event)) {
 					action.accept(event);
 					return true;

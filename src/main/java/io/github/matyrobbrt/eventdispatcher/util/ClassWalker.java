@@ -81,7 +81,7 @@ public final class ClassWalker implements Iterable<Class<?>> {
 	@Nonnull
 	@Override
 	public Iterator<Class<?>> iterator() {
-		return new Iterator<>() {
+        return new Iterator<Class<?>>() {
 
 			private final Set<Class<?>> doneParents = new HashSet<>();
 			private final Deque<Class<?>> inProgressParents = new LinkedList<>();

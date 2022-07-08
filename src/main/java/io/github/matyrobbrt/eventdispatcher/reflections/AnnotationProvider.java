@@ -134,7 +134,7 @@ public class AnnotationProvider {
 	 * @param onClazz the consumer to accept on classes
 	 */
 	public void register(Consumer<? super Object> onField, Consumer<? super Class<?>> onClazz) {
-		final var ref = reflections.get();
+		final Reflections ref = reflections.get();
 		filters.forEach(filter -> {
 			ref.getFieldsAnnotatedWith(filter.annotation())
 				.stream()
@@ -164,10 +164,26 @@ public class AnnotationProvider {
 	 *
 	 * @param  <A> the type of the annotation
 	 */
-	public record AnnotationFilter<A extends Annotation> (Class<A> annotation, Predicate<A> predicate)
+    public final class AnnotationFilter<A extends Annotation>
 			implements Predicate<A> {
 
-		@SuppressWarnings("unchecked")
+        private final Class<A> annotation;
+        private final Predicate<A> predicate;
+
+        public AnnotationFilter(Class<A> annotation, Predicate<A> predicate) {
+            this.annotation = annotation;
+            this.predicate = predicate;
+        }
+
+        public Class<A> annotation() {
+            return annotation;
+        }
+
+        public Predicate<A> predicate() {
+            return predicate;
+        }
+
+        @SuppressWarnings("unchecked")
 		public boolean testObj(Object o) {
 			return test((A) o);
 		}

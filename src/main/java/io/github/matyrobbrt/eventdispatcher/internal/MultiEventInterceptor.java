@@ -27,6 +27,7 @@
 
 package io.github.matyrobbrt.eventdispatcher.internal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
@@ -39,35 +40,36 @@ import io.github.matyrobbrt.eventdispatcher.EventListener;
 
 public final class MultiEventInterceptor implements EventInterceptor {
 
-	private final List<EventInterceptor> interceptors;
+    private final List<EventInterceptor> interceptors;
 
-	public MultiEventInterceptor(List<EventInterceptor> interceptors) {
-		this.interceptors = List.copyOf(interceptors);
-	}
+    public MultiEventInterceptor(List<EventInterceptor> interceptors) {
+        this.interceptors = new ArrayList<>(interceptors);
+    }
 
-	@Override
-	public <E extends Event> @Nullable E onEvent(@NotNull EventBus bus, @NotNull E event) {
-		var newEvent = event;
-		for (var inter : interceptors) {
-			if (newEvent == null) { return null; }
-			newEvent = inter.onEvent(bus, newEvent);
-		}
-		return newEvent;
-	}
+    @Override
+    public <E extends Event> @Nullable E onEvent(@NotNull EventBus bus, @NotNull E event) {
+        E newEvent = event;
+        for (EventInterceptor inter : interceptors) {
+            if (newEvent == null)
+                return null;
+            newEvent = inter.onEvent(bus, newEvent);
+        }
+        return newEvent;
+    }
 
-	@Override
-	public void onException(@NotNull EventBus bus, @NotNull Event event, @NotNull Throwable throwable,
-			@NotNull EventListener listener) {
-		interceptors.forEach(i -> i.onException(bus, event, throwable, listener));
-	}
+    @Override
+    public void onException(@NotNull EventBus bus, @NotNull Event event, @NotNull Throwable throwable,
+            @NotNull EventListener listener) {
+        interceptors.forEach(i -> i.onException(bus, event, throwable, listener));
+    }
 
-	@Override
-	public void onShutdown(@NotNull EventBus bus) {
-		interceptors.forEach(i -> i.onShutdown(bus));
-	}
+    @Override
+    public void onShutdown(@NotNull EventBus bus) {
+        interceptors.forEach(i -> i.onShutdown(bus));
+    }
 
-	@Override
-	public void onStart(@NotNull EventBus bus) {
-		interceptors.forEach(i -> i.onStart(bus));
-	}
+    @Override
+    public void onStart(@NotNull EventBus bus) {
+        interceptors.forEach(i -> i.onStart(bus));
+    }
 }

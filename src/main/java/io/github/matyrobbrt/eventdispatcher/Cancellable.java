@@ -38,17 +38,17 @@ package io.github.matyrobbrt.eventdispatcher;
  */
 public interface Cancellable {
 
-	/**
-	 * Checks if the event was cancelled.
-	 * 
-	 * @return if the event was cancelled.
-	 */
-	boolean isCancelled();
+    /**
+     * Checks if the event was cancelled.
+     * 
+     * @return if the event was cancelled.
+     */
+    boolean isCancelled();
 
-	/**
-	 * Cancel, or undoes the cancelling of the event.
-	 * 
-	 * @param cancelled if the event is cancelled
-	 */
-	void setCancelled(boolean cancelled);
+    /**
+     * Cancel, or undoes the cancelling of the event.
+     * 
+     * @param cancelled if the event is cancelled
+     */
+    void setCancelled(boolean cancelled);
 }

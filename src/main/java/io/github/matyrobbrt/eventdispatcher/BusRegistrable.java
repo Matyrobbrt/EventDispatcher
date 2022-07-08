@@ -44,59 +44,59 @@ import java.lang.annotation.Target;
  */
 public interface BusRegistrable {
 
-	/**
-	 * This method is called when the object is registered to a bus using
-	 * {@link EventBus#register(Object)}.
-	 * 
-	 * @param bus the bus the object was registered to
-	 */
-	default void whenRegistered(EventBus bus) {
+    /**
+     * This method is called when the object is registered to a bus using
+     * {@link EventBus#register(Object)}.
+     * 
+     * @param bus the bus the object was registered to
+     */
+    default void whenRegistered(EventBus bus) {
 
-	}
+    }
 
-	/**
-	 * This method is called when the object is unregistered from a bus using
-	 * {@link EventBus#unregister(Object)}.
-	 * 
-	 * @param bus the bus the object was unregistered from
-	 */
-	default void whenUnregistered(EventBus bus) {
+    /**
+     * This method is called when the object is unregistered from a bus using
+     * {@link EventBus#unregister(Object)}.
+     * 
+     * @param bus the bus the object was unregistered from
+     */
+    default void whenUnregistered(EventBus bus) {
 
-	}
+    }
 
-	/**
-	 * Annotate a class with this annotation in order to provide special behaviour
-	 * when the class is registered to an {@link EventBus} using
-	 * {@link EventBus#register(Class)}. <br>
-	 * <br>
-	 * The methods that should be called when the class is registered respectively
-	 * unregistered from a bus need to be static, and have only one parameter that
-	 * is of the type {@link EventBus}.
-	 * 
-	 * @author matyrobbrt
-	 *
-	 */
-	@Documented
-	@Target(ElementType.TYPE)
-	@Retention(RetentionPolicy.RUNTIME)
-	@interface ForClass {
+    /**
+     * Annotate a class with this annotation in order to provide special behaviour
+     * when the class is registered to an {@link EventBus} using
+     * {@link EventBus#register(Class)}. <br>
+     * <br>
+     * The methods that should be called when the class is registered respectively
+     * unregistered from a bus need to be static, and have only one parameter that
+     * is of the type {@link EventBus}.
+     * 
+     * @author matyrobbrt
+     *
+     */
+    @Documented
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface ForClass {
 
-		/**
-		 * The method to call when the class is registered to an {@link EventBus} using
-		 * {@link EventBus#register(Class)}. <br>
-		 * Can be left blank to remove this functionality.
-		 * 
-		 * @return the method to call when the class is registered
-		 */
-		String registered() default "";
+        /**
+         * The method to call when the class is registered to an {@link EventBus} using
+         * {@link EventBus#register(Class)}. <br>
+         * Can be left blank to remove this functionality.
+         * 
+         * @return the method to call when the class is registered
+         */
+        String registered() default "";
 
-		/**
-		 * The method to call when the class is unregistered from an {@link EventBus}
-		 * using {@link EventBus#unregister(Class)}. <br>
-		 * Can be left blank to remove this functionality.
-		 * 
-		 * @return the method to call when the class is unregistered
-		 */
-		String unregistered() default "";
-	}
+        /**
+         * The method to call when the class is unregistered from an {@link EventBus}
+         * using {@link EventBus#unregister(Class)}. <br>
+         * Can be left blank to remove this functionality.
+         * 
+         * @return the method to call when the class is unregistered
+         */
+        String unregistered() default "";
+    }
 }

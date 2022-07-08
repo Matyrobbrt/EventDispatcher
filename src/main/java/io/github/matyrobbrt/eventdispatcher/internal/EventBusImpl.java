@@ -191,7 +191,7 @@ final class EventBusImpl implements EventBus {
 		final Class<T> eClass = getEventClass(consumer);
 		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
-					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
+                    String.format("Event class %s is not a subtype of %s!", eClass, baseEventType));
 		}
 		checkNotGeneric(eClass);
 		addListener(eClass, e -> true, priority, e -> consumer.accept((T) e));
@@ -203,7 +203,7 @@ final class EventBusImpl implements EventBus {
 		final Class<E> eClass = getEventClass(consumer);
 		if (!eventClassIsAccepted(eClass)) {
 			throw new IllegalArgumentException(
-					"Event class %s is not a subtype of %s!".formatted(eClass, baseEventType));
+                    String.format("Event class %s is not a subtype of %s!", eClass, baseEventType));
 		}
 		addListener(eClass, t -> t.getGenericType() == genericFilter, priority, e -> consumer.accept((E) e));
 	}
@@ -229,8 +229,8 @@ final class EventBusImpl implements EventBus {
 
 	@Override
 	public void unregister(Object object) {
-		if (object instanceof Class<?> clazz) {
-			unregisterClass(clazz);
+        if (object instanceof Class<?>) {
+            unregisterClass((Class<?>) object);
 		} else {
 			unregisterObject(object);
 		}
@@ -248,22 +248,25 @@ final class EventBusImpl implements EventBus {
         collectParents(obj.getClass(), parents);
         return Arrays.stream(obj.getClass().getDeclaredMethods())
                 .filter(m -> !Modifier.isStatic(m.getModifiers()))
-                .flatMap(m -> parents.stream() // This search is for registering methods from subtypes
+                .flatMap(m -> optionalToStream(parents.stream() // This search is for registering methods from subtypes
                         .map(c -> getActualMethod(c, m))
                         .filter(subM -> subM.isPresent() && subM.get().isAnnotationPresent(SubscribeEvent.class))
                         .filter(subM -> methodCanBeListener(subM.get(), warnIfWrongModifier))
-                        .findFirst()
-                        .stream()
+                        .findFirst())
                         .filter(Optional::isPresent)
                         .map(Optional::get));
 	}
 	
+	private static <T> Stream<T> optionalToStream(Optional<T> opt) {
+	    return opt.isPresent() ? Stream.of(opt.get()) : Stream.empty();
+	}
+	
 	private void registerClass(final Class<?> clazz) {
 		if (clazz.isAnnotationPresent(BusRegistrable.ForClass.class)) {
-			final var ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
-			if (!ann.registered().isBlank()) {
+			final BusRegistrable.ForClass ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
+			if (!ann.registered().isEmpty()) {
 				try {
-					final var mthd = tryFindMethod(clazz, ann.registered());
+					final MethodHandle mthd = tryFindMethod(clazz, ann.registered());
 					try {
 						mthd.invoke(this);
 					} catch (Throwable e) {
@@ -286,10 +289,10 @@ final class EventBusImpl implements EventBus {
 	
 	private void unregisterClass(final Class<?> clazz) {
 		if (clazz.isAnnotationPresent(BusRegistrable.ForClass.class)) {
-			final var ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
-			if (!ann.unregistered().isBlank()) {
+			final BusRegistrable.ForClass ann = clazz.getAnnotation(BusRegistrable.ForClass.class);
+			if (!ann.unregistered().isEmpty()) {
 				try {
-					final var mthd = tryFindMethod(clazz, ann.unregistered());
+					final MethodHandle mthd = tryFindMethod(clazz, ann.unregistered());
 					try {
 						mthd.invoke(this);
 					} catch (Throwable e) {
@@ -311,8 +314,8 @@ final class EventBusImpl implements EventBus {
 	}
 	
 	private static MethodHandle tryFindMethod(Class<?> clazz, String name) throws NoSuchMethodException, IllegalAccessException {
-		final var lookup = MethodHandles.lookup();
-		final var descriptor = MethodType.methodType(void.class, EventBus.class);
+		final MethodHandles.Lookup lookup = MethodHandles.lookup();
+		final MethodType descriptor = MethodType.methodType(void.class, EventBus.class);
 		return lookup.findStatic(clazz, name, descriptor);
 	}
 	//@formatter:on
@@ -321,16 +324,18 @@ final class EventBusImpl implements EventBus {
 		final Class<?>[] parameterTypes = method.getParameterTypes();
 		if (parameterTypes.length != 1) {
 			throw new IllegalArgumentException(
-					"Method %s has @SubscribeEvent annotation. It has %s arguments, but event handler methods require a single argument."
-							.formatted(method, parameterTypes.length));
+                    String.format(
+                            "Method %s has @SubscribeEvent annotation. It has %s arguments, but event handler methods require a single argument.",
+                            method, parameterTypes.length));
 		}
 
 		final Class<?> eventType = parameterTypes[0];
 
 		if (!eventClassIsAccepted(eventType)) {
 			throw new IllegalArgumentException(
-					"Method %s has @SubscribeEvent annotation, but takes an argument that is not a subtype of the base type %s: %s"
-							.formatted(method, baseEventType, eventType));
+                    String.format(
+                            "Method %s has @SubscribeEvent annotation, but takes an argument that is not a subtype of the base type %s: %s",
+                            method, baseEventType, eventType));
 		}
 
 		register(eventType, priority, target, method);
