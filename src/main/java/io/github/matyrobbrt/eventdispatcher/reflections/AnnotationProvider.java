@@ -115,11 +115,6 @@ public class AnnotationProvider {
 	 * Creates a new {@link AnnotationProvider}, using the
 	 * {@link #DEFAULT_REFLECTIONS}.
 	 * 
-	 * @param reflections a supplier containing the {@link Reflections} used for
-	 *                    discovering the objects annotated with an annotation. <br>
-	 *                    It is recommended that these reflections have at least the
-	 *                    {@link Scanners#FieldsAnnotated} and
-	 *                    {@link Scanners#TypesAnnotated} scanners.
 	 * @param filters     the {@link AnnotationFilter}s used for discovering the
 	 *                    objects that should be automatically registered.
 	 */

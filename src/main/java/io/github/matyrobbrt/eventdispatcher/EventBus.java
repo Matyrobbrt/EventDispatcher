@@ -188,10 +188,9 @@ public interface EventBus {
 
     /**
      * Checks if this bus is async. If it is, any {@link #post(Event)} calls will
-     * dispatch and handle the event on the {@link #getExecutor() dispatch
-     * executor}. Otherwise, calls to {@link #post(Event)} will have the event
-     * dispatched and handled on the same thread as the caller, making the operation
-     * <strong>blocking</strong>.
+     * dispatch and handle the event on the dispatch executor. Otherwise, calls to
+     * {@link #post(Event)} will have the event dispatched and handled on the same
+     * thread as the caller, making the operation <strong>blocking</strong>.
      * 
      * @return if the bus is asynchronous
      * @since  1.4.0
