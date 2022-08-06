@@ -159,7 +159,7 @@ public class AnnotationProvider {
 	 *
 	 * @param  <A> the type of the annotation
 	 */
-    public final class AnnotationFilter<A extends Annotation>
+    public static final class AnnotationFilter<A extends Annotation>
 			implements Predicate<A> {
 
         private final Class<A> annotation;
