@@ -29,6 +29,7 @@ package io.github.matyrobbrt.eventdispatcher;
 
 import java.util.function.Consumer;
 
+import io.github.matyrobbrt.eventdispatcher.internal.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
 
 import io.github.matyrobbrt.eventdispatcher.internal.BusBuilder;
@@ -125,6 +126,12 @@ public interface EventBus {
             @NotNull Consumer<E> consumer) {
         addGenericListener(0, genericFilter, consumer);
     }
+
+    /**
+     * Registers a custom dispatcher for the {@code eventClass}. <br>
+     * This is needed if you want to provide a {@linkplain Event#getDispatcher() custom event dispatcher}.
+     */
+    void registerDispatcher(Class<? extends Event> eventClass, EventDispatcher dispatcher);
 
     /**
      * Registers an object to the event bus, adding listeners for all <strong>public

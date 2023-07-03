@@ -27,6 +27,8 @@
 
 package io.github.matyrobbrt.eventdispatcher;
 
+import io.github.matyrobbrt.eventdispatcher.internal.EventDispatcher;
+
 /**
  * The base interface for events.
  * 
@@ -34,5 +36,10 @@ package io.github.matyrobbrt.eventdispatcher;
  *
  */
 public interface Event {
-
+    /**
+     * {@return a custom dispatcher provided by this event, or {@code null} to use the default dispatcher}
+     */
+    default EventDispatcher getDispatcher() {
+        return null;
+    }
 }

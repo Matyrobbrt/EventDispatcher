@@ -123,7 +123,7 @@ final class EventBusImpl implements EventBus {
 	public void shutdown() {
 		this.shutdown = true;
 		interceptor.onShutdown(this);
-		getDispatcher(ShutdownEvent.class).handle(new ShutdownEvent(this));
+		getDispatcher(ShutdownEvent.class, null).handle(new ShutdownEvent(this));
 		logger.warn("EventBus {} shutting down - future events will not be posted.", getName());
 	}
 
@@ -131,7 +131,7 @@ final class EventBusImpl implements EventBus {
 	public void start() {
 		this.shutdown = false;
 		interceptor.onStart(this);
-		getDispatcher(StartEvent.class).handle(new StartEvent(this));
+		getDispatcher(StartEvent.class, null).handle(new StartEvent(this));
 		logger.warn("EventBus {} is starting - future events will be posted.", getName());
 	}
 
@@ -170,7 +170,7 @@ final class EventBusImpl implements EventBus {
 		} else {
 			final Event newEvent = interceptor.onEvent(this, event);
 			if (newEvent != null) {
-				getDispatcher(eventClass).handleWithExceptionCatch(newEvent,
+				getDispatcher(eventClass, event.getDispatcher()).handleWithExceptionCatch(newEvent,
 						(listener, t) -> interceptor.onException(this, event, t, listener));
 			}
 		}
@@ -183,7 +183,7 @@ final class EventBusImpl implements EventBus {
 
 	@Override
 	public void addUniversalListener(int priority, EventListener listener) {
-		getDispatcher(baseEventType).register(priority, listener);
+		getDispatcher(baseEventType, null).register(priority, listener);
 	}
 
 	@Override
@@ -348,7 +348,7 @@ final class EventBusImpl implements EventBus {
 		final Class<?> eventType = parameterTypes[0];
 		if (!eventClassIsAccepted(eventType))
 			return;
-		getDispatcher((Class<? extends Event>) eventType).unregister(l -> {
+		getDispatcher((Class<? extends Event>) eventType, null).unregister(l -> {
 			ASMEventListener asm = null;
 			if (l instanceof ASMEventListener) {
 				asm = (ASMEventListener) l;
@@ -402,11 +402,16 @@ final class EventBusImpl implements EventBus {
 
 	private <E extends Event> void addListener(Class<E> eventClass, Predicate<? super E> predicate, int priority,
 			EventListener listener) {
-		getDispatcher(eventClass).register(priority, new WithPredicateEventListener<>(eventClass, predicate, listener));
+		getDispatcher(eventClass, null).register(priority, new WithPredicateEventListener<>(eventClass, predicate, listener));
 	}
 
-	private EventDispatcher getDispatcher(Class<? extends Event> eventClass) {
-		return dispatchers.computeIfAbsent(eventClass, k -> new EventDispatcher());
+	@Override
+	public void registerDispatcher(Class<? extends Event> eventClass, EventDispatcher dispatcher) {
+		dispatchers.put(eventClass, dispatcher);
+	}
+
+	private EventDispatcher getDispatcher(Class<? extends Event> eventClass, @Nullable EventDispatcher custom) {
+		return custom == null ? dispatchers.computeIfAbsent(eventClass, k -> new EventDispatcher()) : custom;
 	}
 
 	private static <T extends Event> Class<T> getEventClass(Consumer<T> consumer) {
